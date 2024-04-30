@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String             @id @default(auto()) @map("_id") @db.ObjectId
+  userName            String             @unique
+  email               String             @unique
+  password            String
+  shippingAddress     ShippingAddress
+  delivery            Delivery?          @relation("DeliveryId", fields: [deliveryIds], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deliveryIds         String[]           @db.ObjectId
+  deliveryReferenceId Delivery[]         @relation("UserId")
+  RatingsAndComments  RatingAndComment[] @relation("UserId")
+  ShoppingHistory     ShoppingHistory?   @relation("UserId")
+}
+
+type ShippingAddress {
+  street         String
+  outdoorNumber  String
+  interiorNumber String?
+  postalCode     String
+  state          String
+  townHall       String
+  phoneNumber    String
+}
+
+model Product {
+  id                  String             @id @default(auto()) @map("_id") @db.ObjectId
+  name                String
+  price               Int
+  stock               Int
+  brand               String
+  category            String
+  description         String[]
+  sizes               String[]
+  colors              String[]
+  images              String[]
+  productToCartlistId Delivery[]         @relation("ProductToCart")
+  productToComments   RatingAndComment[]
+}
+
+model Delivery {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  user            User            @relation("UserId", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId          String          @db.ObjectId
+  productToCart   Product         @relation("ProductToCart", fields: [cart], references: [id])
+  cart            String[]        @db.ObjectId
+  userReference   User[]          @relation("DeliveryId")
+  totalAmount     Int
+  shippingAddress ShippingAddress
+  orderDate       DateTime        @default(now())
+  status          Status          @default(INPROGRESS)
+}
+
+enum Status {
+  INPROGRESS
+  PAIDUP
+  INDELIVERING
+}
+
+model RatingAndComment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String   @db.ObjectId
+  user      User     @relation("UserId", fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  rating    Int      @default(4)
+  comment   String
+  timestamp DateTime @default(now())
+}
+
+model ShoppingHistory {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  user        User     @relation("UserId", fields: [userId], references: [id])
+  userId      String   @unique @db.ObjectId
+  orderIds    String[] @db.ObjectId
+  totalAmount Int
+}
